@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->string('nome');
             $table->integer('quantidade');
-            $table->string('unidade');
             $table->date('data_validade')->nullable();
             $table->timestamps();
         });
