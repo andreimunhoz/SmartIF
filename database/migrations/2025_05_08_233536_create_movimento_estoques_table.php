@@ -1,30 +1,25 @@
 <?php
 
-namespace App\Models;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-
-class MovimentoEstoque extends Model
+return new class extends Migration
 {
-    use HasFactory;
-
-    protected $table = 'movimentos_estoque';
-
-    protected $fillable = [
-        'item_estoque_id',
-        'chamado_id',
-        'quantidade',
-        'tipo',
-    ];
-
-    public function item()
+    public function up(): void
     {
-        return $this->belongsTo(ItemEstoque::class, 'item_estoque_id');
+        Schema::create('movimentos_estoque', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('item_estoque_id')->constrained('itens_estoque')->onDelete('cascade');
+            $table->foreignId('chamado_id')->constrained('chamados')->onDelete('cascade');
+            $table->integer('quantidade');
+            $table->enum('tipo', ['entrada', 'saida']); // Exemplo de tipo de movimento
+            $table->timestamps();
+        });
     }
 
-    public function chamado()
+    public function down(): void
     {
-        return $this->belongsTo(Chamado::class);
+        Schema::dropIfExists('movimentos_estoque');
     }
-}
+};

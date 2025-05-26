@@ -1,69 +1,95 @@
-version: "3"
+version: "3.8"
 
 services:
-    # image project
-    app:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        restart: unless-stopped
-        working_dir: /var/www/
-        volumes:
-            - ./:/var/www
-        depends_on:
-            - redis
-        networks:
-            - laravel
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - laravel_network
 
-    # nginx
-    nginx:
-        image: nginx:alpine
-        restart: unless-stopped
-        ports:
-            - "8000:80"
-        volumes:
-            - ./:/var/www
-            - ./docker/nginx/:/etc/nginx/conf.d/
-        networks:
-            - laravel
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - laravel_network
 
-    # db mysql
-    db:
-        image: mysql:8.0
-        platform: linux/x86_64
-        restart: unless-stopped
-        environment:
-            MYSQL_DATABASE: ${DB_DATABASE:-laravel}
-            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
-            MYSQL_PASSWORD: ${DB_PASSWORD:-userpass}
-            MYSQL_USER: ${DB_USERNAME:-username}
-        volumes:
-            - ./.docker/mysql/dbdata:/var/lib/mysql
-        ports:
-            - "3300:3306"
-        networks:
-            - laravel
+  db:
+    image: mysql:8.0
+    container_name: db
+    platform: linux/x86_64
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    networks:
+      - laravel_network
 
-    # PHPMyAdmin
-    phpmyadmin:
-        image: phpmyadmin/phpmyadmin
-        platform: linux/x86_64
-        restart: unless-stopped
-        ports:
-            - "8080:80"
-        environment:
-            PMA_HOST: db
-            PMA_PORT: 3306
-            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
-        networks:
-            - laravel
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      - db
+    networks:
+      - laravel_network
 
-    # redis
-    redis:
-        image: redis:latest
-        networks:
-            - laravel
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - laravel_network
+
+volumes:
+  db_data:
+    driver: local
+  redis_data:
+    driver: local
 
 networks:
-    laravel:
-        driver: bridge
+  laravel_network:
+    driver: bridge

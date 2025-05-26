@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('sala');
             $table->string('ramal');
             $table->foreignId('departamento_id')->constrained('departamentos')->onDelete('cascade');
+            $table->string('status')->default('aberto'); 
+            $table->text('solucao')->nullable();
+            $table->boolean('encerrado')->default(false);
+            $table->timestamp('encerrado_em')->nullable();
             $table->timestamps();
         });
     }

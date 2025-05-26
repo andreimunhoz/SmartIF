@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('nome');
             $table->integer('quantidade');
             $table->date('data_validade')->nullable();
+            $table->string('imagem')->nullable();
             $table->timestamps();
         });
     }
