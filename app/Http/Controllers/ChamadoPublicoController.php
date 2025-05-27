@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Chamado;
 use App\Models\Departamento;
 use Illuminate\Http\Request;
+use App\Events\NovoChamadoCriado;
 use Illuminate\Support\Facades\Mail;
 
 class ChamadoPublicoController extends Controller
@@ -33,6 +34,9 @@ class ChamadoPublicoController extends Controller
 
         $chamado = Chamado::create($validated);
 
+        // 🔔 Disparar o evento de broadcast para notificar a tela de admin
+        event(new NovoChamadoCriado($chamado));
+        
         // Envia e-mail para o departamento
         $departamento = Departamento::find($validated['departamento_id']);
 
