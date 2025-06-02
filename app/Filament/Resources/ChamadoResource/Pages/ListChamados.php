@@ -27,12 +27,4 @@ class ListChamados extends ListRecords
 {
     return view('filament.alerta-chamado-novo-wrapper');
 }
-
-protected function getScripts(): array
-{
-    return [
-        asset('js/alerta-chamado.js'),
-    ];
-
-}
 }

@@ -88,6 +88,11 @@ public static function form(Form $form): Form
     return $table
         ->poll('5s')
         ->columns([
+        Tables\Columns\TextColumn::make('id')
+                ->label('ID')
+                ->sortable()
+                ->searchable(),
+
             Tables\Columns\TextColumn::make('nome')
                 ->label('Nome')
                 ->searchable(),

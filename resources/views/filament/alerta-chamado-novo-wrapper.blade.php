@@ -1,9 +1,3 @@
-<div>
-    @livewire('alerta-chamado-novo')
-
-    <script>
-        Livewire.on('novo-chamado-alerta', () => {
-            alert('🚨 Novo chamado aberto!');
-        });
-    </script>
-</div>
+<!-- resources/views/filament/alerta-chamado-novo-wrapper.blade.php -->
+<script src="{{ asset('js/alerta-chamado.js') }}"></script>
+    
