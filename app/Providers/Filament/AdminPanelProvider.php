@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Facades\Filament; // <-- IMPORTANTE
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -17,9 +18,25 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Illuminate\Support\Facades\Blade; // <-- IMPORTANTE
 
 class AdminPanelProvider extends PanelProvider
 {
+    /**
+     * Este é o método que vamos usar. Ele é executado
+     * quando o Filament está sendo renderizado.
+     */
+    public function boot(): void
+    {
+        Filament::registerRenderHook(
+            'panels::body.end',
+            fn (): string => Blade::render("@vite('resources/js/alerta-chamado.js')"),
+        );
+    }
+
+    /**
+     * A configuração do painel agora NÃO TEM o método .scripts()
+     */
     public function panel(Panel $panel): Panel
     {
         return $panel

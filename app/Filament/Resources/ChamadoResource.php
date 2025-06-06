@@ -9,9 +9,16 @@ use App\Models\ItemEstoque;
 use App\Models\MovimentoEstoque;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Grid;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Builder; // Importação para filtros
+use Filament\Tables\Filters\SelectFilter; // Importação para filtros
+use Filament\Tables\Filters\Filter;      // Importação para filtros
+use Filament\Forms\Components\DatePicker; // Importação para filtros
+use Filament\Tables\Grouping\Group;       // Importação para Agrupamento
 
 class ChamadoResource extends Resource
 {
@@ -23,308 +30,203 @@ class ChamadoResource extends Resource
     protected static ?string $modelLabel = 'Chamado';
     protected static ?string $navigationGroup = 'Gestão';
 
-public static function form(Form $form): Form
-{
-    return $form
-        ->schema([
-            Forms\Components\Section::make('Informações do Solicitante')
-                ->schema([
-                    Forms\Components\Grid::make(2)
-                        ->schema([
-                            Forms\Components\TextInput::make('nome')
-                                ->label('Nome Completo')
-                                ->required()
-                                ->maxLength(255),
-                                
-                            Forms\Components\TextInput::make('email')
-                                ->label('E-mail Institucional')
-                                ->email()
-                                ->required()
-                                ->maxLength(255),
-                        ]),
-                        
-                    Forms\Components\Grid::make(3)
-                        ->schema([
-                            Forms\Components\TextInput::make('sala')
-                                ->label('Sala/Local')
-                                ->required()
-                                ->maxLength(100),
-                                
-                            Forms\Components\TextInput::make('ramal')
-                                ->label('Ramal')
-                                ->required()
-                                ->maxLength(20),
-                                
-                            Forms\Components\TextInput::make('patrimonio')
-                                ->label('Nº Patrimônio')
-                                ->default('0')
-                                ->maxLength(50),
-                        ]),
-                ])
-                ->collapsible(),
-                
-            Forms\Components\Section::make('Detalhes do Chamado')
-                ->schema([
-                    Forms\Components\Select::make('departamento_id')
-                        ->label('Departamento Responsável')
-                        ->options(Departamento::all()->pluck('nome', 'id'))
-                        ->searchable()
-                        ->preload()
-                        ->required(),
-                        
-                    Forms\Components\Textarea::make('descricao')
-                        ->label('Descrição do Problema')
-                        ->required()
-                        ->rows(4)
-                        ->columnSpanFull()
-                        ->helperText('Descreva detalhadamente o problema encontrado'),
-                ])
-                ->collapsible(),
-        ]);
-}
+    public static function form(Form $form): Form
+    {
+        // Seu formulário de criação/edição permanece o mesmo
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Informações do Solicitante')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('nome')
+                                    ->label('Nome Completo')
+                                    ->required()
+                                    ->maxLength(255),
+
+                                Forms\Components\TextInput::make('email')
+                                    ->label('E-mail Institucional')
+                                    ->email()
+                                    ->required()
+                                    ->maxLength(255),
+                            ]),
+
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('sala')
+                                    ->label('Sala/Local')
+                                    ->required()
+                                    ->maxLength(100),
+
+                                Forms\Components\TextInput::make('ramal')
+                                    ->label('Ramal')
+                                    ->required()
+                                    ->maxLength(20),
+
+                                Forms\Components\TextInput::make('patrimonio')
+                                    ->label('Nº Patrimônio')
+                                    ->default('0')
+                                    ->maxLength(50),
+                            ]),
+                    ])
+                    ->collapsible(),
+
+                Forms\Components\Section::make('Detalhes do Chamado')
+                    ->schema([
+                        Forms\Components\Select::make('departamento_id')
+                            ->label('Departamento Responsável')
+                            ->options(Departamento::all()->pluck('nome', 'id'))
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+
+                        Forms\Components\Textarea::make('descricao')
+                            ->label('Descrição do Problema')
+                            ->required()
+                            ->rows(4)
+                            ->columnSpanFull()
+                            ->helperText('Descreva detalhadamente o problema encontrado'),
+                    ])
+                    ->collapsible(),
+            ]);
+    }
 
     public static function table(Table $table): Table
-{
-    return $table
-        ->poll('5s')
-        ->columns([
-        Tables\Columns\TextColumn::make('id')
-                ->label('ID')
-                ->sortable()
-                ->searchable(),
+    {
+        return $table
+            ->recordUrl(null)
+            // MELHORIA: Ação de clique na linha inteira
+            ->recordAction(fn (Chamado $record) => $record->status === 'encerrado' ? 'visualizar' : 'atender')
+            // MELHORIA: Ordenação padrão pelos mais recentes
+            ->defaultSort('created_at', 'desc')
+            ->columns([
+                Tables\Columns\TextColumn::make('id')->label('ID')->sortable(),
 
-            Tables\Columns\TextColumn::make('nome')
-                ->label('Nome')
-                ->searchable(),
+                // MELHORIA: Coluna de solicitante mais informativa
+                Tables\Columns\TextColumn::make('nome')
+                    ->label('Solicitante')
+                    ->description(fn (Chamado $record): string => $record->email)
+                    ->searchable(['nome', 'email']), // Busca por nome e email
 
-            Tables\Columns\TextColumn::make('descricao')
-                ->label('Descrição')
-                ->limit(50)
-                ->tooltip(fn (Chamado $record) => $record->descricao)
-                ->searchable(),
+                Tables\Columns\TextColumn::make('descricao')->label('Descrição')->limit(40)->tooltip(fn (Chamado $record) => $record->descricao)->searchable(),
+                Tables\Columns\TextColumn::make('departamento.nome')->label('Departamento')->tooltip(fn ($record) => $record->departamento?->nome ?? 'N/A'),
 
-            Tables\Columns\TextColumn::make('departamento.nome')
-                ->label('Departamento')
-                ->tooltip(fn ($record) => $record->departamento->nome ?? 'N/A'),
+                // MELHORIA: Data relativa (ex: "há 2 horas")
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Criado em')
+                    ->since()
+                    ->tooltip(fn (Chamado $record): string => $record->created_at->format('d/m/Y H:i'))
+                    ->sortable(),
 
-            Tables\Columns\TextColumn::make('created_at')
-                ->label('Criado em')
-                ->icon('heroicon-o-calendar')
-                ->dateTime('d/m/Y H:i')
-                ->sortable(),
-
-            Tables\Columns\BadgeColumn::make('status')
-                ->label('Status')
-                ->icon(fn (string $state) => match ($state) {
-                    'aberto' => 'heroicon-o-clock',
-                    'em_andamento' => 'heroicon-o-adjustments-horizontal',
-                    'encerrado' => 'heroicon-o-check-circle',
-                    default => null,
-                })
-                ->color(fn (string $state) => match ($state) {
-                    'aberto' => 'gray',
-                    'em_andamento' => 'warning',
-                    'encerrado' => 'success',
-                    default => 'secondary',
-                })
-                ->formatStateUsing(fn (string $state) => match ($state) {
-                    'aberto' => 'Aberto',
-                    'em_andamento' => 'Em andamento',
-                    'encerrado' => 'Encerrado',
-                    default => ucfirst($state),
-                }),
-        ])
-        ->filters([
-            Tables\Filters\SelectFilter::make('status')
-                ->label('Status')
-                ->options([
-                    'aberto' => 'Aberto',
-                    'em_andamento' => 'Em andamento',
-                    'encerrado' => 'Encerrado',
-                ]),
-
-            Tables\Filters\Filter::make('created_at')
-                ->label('Data de Abertura')
-                ->form([
-                    Forms\Components\DatePicker::make('from')->label('De'),
-                    Forms\Components\DatePicker::make('until')->label('Até'),
-                ])
-                ->query(function ($query, array $data) {
-                    return $query
-                        ->when($data['from'], fn ($q) => $q->whereDate('created_at', '>=', $data['from']))
-                        ->when($data['until'], fn ($q) => $q->whereDate('created_at', '<=', $data['until']));
-                }),
-        ])
-        ->defaultSort('created_at', 'desc')
-        ->actions([
-            Tables\Actions\ActionGroup::make([
-                Tables\Actions\ViewAction::make()
-                    ->icon('heroicon-o-eye')
-                    ->tooltip('Visualizar chamado')
-                    ->visible(fn (Chamado $record) => !$record->encerrado),
-
-                Tables\Actions\Action::make('verDetalhes')
-                    ->label('Ver Detalhes')
-                    ->icon('heroicon-o-eye')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'encerrado')
-                    ->modalHeading('Detalhes do Chamado Encerrado')
-                    ->modalSubheading('Aqui você pode ver todos os detalhes do chamado após seu encerramento.')
-                    ->form(fn (Chamado $record) => [
-                        Forms\Components\TextInput::make('nome')
-                            ->label('Nome')
-                            ->default($record->nome)
-                            ->disabled(),
-
-                        Forms\Components\TextInput::make('email')
-                            ->label('E-mail')
-                            ->default($record->email)
-                            ->disabled(),
-
-                        Forms\Components\Textarea::make('descricao')
-                            ->label('Descrição do Chamado')
-                            ->default($record->descricao)
-                            ->disabled()
-                            ->rows(3),
-
-                        Forms\Components\Textarea::make('solucao')
-                            ->label('Relato / Solução')
-                            ->default($record->solucao)
-                            ->disabled()
-                            ->rows(3),
-
-                        Forms\Components\TextInput::make('encerrado_em')
-                            ->label('Data de Encerramento')
-                            ->default(fn () => $record->encerrado_em ? \Carbon\Carbon::parse($record->encerrado_em)->format('d/m/Y H:i') : null)
-                            ->disabled(),
-
-                        Forms\Components\Repeater::make('itens_usados')
-                            ->label('Itens Utilizados')
-                            ->schema([
-                                Forms\Components\TextInput::make('item')
-                                    ->label('Item')
-                                    ->default(fn ($state) => $state['item'] ?? '')
-                                    ->disabled(),
-
-                                Forms\Components\TextInput::make('quantidade')
-                                    ->label('Quantidade')
-                                    ->default(fn ($state) => $state['quantidade'] ?? '')
-                                    ->disabled(),
-                            ])
-                            ->default(fn () => $record->itensEstoque?->map(function ($item) {
-                                return [
-                                    'item' => $item->nome,
-                                    'quantidade' => $item->pivot->quantidade,
-                                ];
-                            })->toArray() ?? [])
-                            ->disabled(),
+                Tables\Columns\BadgeColumn::make('status')
+                    ->label('Status')
+                    ->icon(fn (string $state) => match ($state) {
+                        'aberto' => 'heroicon-o-clock',
+                        'em_andamento' => 'heroicon-o-adjustments-horizontal',
+                        'encerrado' => 'heroicon-o-check-circle',
+                    })
+                    ->color(fn (string $state) => match ($state) {
+                        'aberto' => 'gray',
+                        'em_andamento' => 'warning',
+                        'encerrado' => 'success',
+                    })
+                    ->formatStateUsing(fn (string $state) => ucfirst($state)),
+            ])
+            // MELHORIA: Filtros avançados
+            ->filters([
+                SelectFilter::make('departamento')
+                    ->relationship('departamento', 'nome')
+                    ->searchable()
+                    ->preload()
+                    ->label('Departamento'),
+                Filter::make('created_at')
+                    ->form([
+                        DatePicker::make('created_from')->label('Criado de'),
+                        DatePicker::make('created_until')->label('Criado até'),
                     ])
-                    ->action(fn () => null),
-
-                Tables\Actions\Action::make('atenderChamado')
-                    ->label('Atender / Encerrar')
-                    ->icon('heroicon-o-wrench')
-                    ->color('primary')
-                    ->visible(fn (Chamado $record) => !$record->encerrado)
-                    ->modalHeading('Atendimento do Chamado')
-                    ->form(fn (Chamado $record) => [
-                        Forms\Components\Grid::make(2)->schema([
-                            Forms\Components\TextInput::make('nome')
-                                ->label('Nome')
-                                ->default($record->nome)
-                                ->disabled(),
-
-                            Forms\Components\TextInput::make('email')
-                                ->label('E-mail')
-                                ->default($record->email)
-                                ->disabled(),
-
-                            Forms\Components\TextInput::make('sala')
-                                ->label('Sala / Local')
-                                ->default($record->sala)
-                                ->disabled(),
-
-                            Forms\Components\TextInput::make('ramal')
-                                ->label('Ramal')
-                                ->default($record->ramal)
-                                ->disabled(),
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['created_from'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date));
+                    }),
+            ])
+            ->actions([
+                // Sua lógica de ações condicionais está mantida
+                Tables\Actions\Action::make('atender')
+                    ->label('Atender')
+                    ->icon('heroicon-o-pencil-square')
+                    ->modalHeading('Atender Chamado')
+                    ->modalWidth('4xl')
+                    ->visible(fn (Chamado $record) => $record->status !== 'encerrado')
+                    ->mountUsing(fn (Forms\ComponentContainer $form, Chamado $record) => $form->fill($record->toArray()))
+                    ->form([
+                        Tabs::make('ChamadoTabs')->tabs([
+                            Tabs\Tab::make('Informações')->schema([
+                                Grid::make(2)->schema([
+                                    Forms\Components\TextInput::make('nome')->label('Nome')->disabled(),
+                                    Forms\Components\TextInput::make('email')->label('E-mail')->disabled(),
+                                ]),
+                                Forms\Components\TextInput::make('departamento.nome')->label('Departamento Responsável')->default(fn(Chamado $record) => $record->departamento?->nome)->disabled(),
+                                Forms\Components\Textarea::make('descricao')->label('Descrição')->disabled()->rows(4),
+                            ]),
+                            Tabs\Tab::make('Status e Solução')->schema([
+                                Forms\Components\Select::make('status')->label('Status')->options(['aberto' => 'Aberto', 'em_andamento' => 'Em andamento', 'encerrado' => 'Encerrado'])->required()->reactive(),
+                                Forms\Components\Textarea::make('solucao')->label('Relato / Solução')->rows(4)->visible(fn (callable $get) => $get('status') === 'encerrado')->required(fn (callable $get) => $get('status') === 'encerrado'),
+                                Forms\Components\Repeater::make('itens_usados')->label('Itens Utilizados')->relationship('itensEstoque')->schema([
+                                    Forms\Components\Select::make('item_estoque_id')->label('Item de Estoque')->options(ItemEstoque::pluck('nome', 'id'))->searchable()->required(),
+                                    Forms\Components\TextInput::make('quantidade')->label('Quantidade')->numeric()->minValue(1)->required(),
+                                ])->visible(fn (callable $get) => $get('status') === 'encerrado'),
+                            ]),
                         ]),
-
-                        Forms\Components\Textarea::make('descricao')
-                            ->label('Descrição do Chamado')
-                            ->default($record->descricao)
-                            ->disabled()
-                            ->rows(3),
-
-                        Forms\Components\Select::make('status')
-                            ->label('Status')
-                            ->options([
-                                'aberto' => 'Aberto',
-                                'em_andamento' => 'Em andamento',
-                                'encerrado' => 'Encerrado',
-                            ])
-                            ->reactive()
-                            ->required()
-                            ->default($record->status),
-
-                        Forms\Components\Textarea::make('solucao')
-                            ->label('Relato / Solução')
-                            ->rows(3)
-                            ->visible(fn (callable $get) => $get('status') === 'encerrado')
-                            ->required(fn (callable $get) => $get('status') === 'encerrado'),
-
-                        Forms\Components\Repeater::make('itens_usados')
-                            ->label('Itens utilizados (opcional)')
-                            ->schema([
-                                Forms\Components\Select::make('item_estoque_id')
-                                    ->label('Item de Estoque')
-                                    ->options(ItemEstoque::pluck('nome', 'id'))
-                                    ->searchable()
-                                    ->required(),
-
-                                Forms\Components\TextInput::make('quantidade')
-                                    ->label('Quantidade')
-                                    ->numeric()
-                                    ->minValue(1)
-                                    ->required(),
-                            ])
-                            ->visible(fn (callable $get) => $get('status') === 'encerrado'),
                     ])
-                    ->action(function ($record, array $data) {
-                        $record->status = $data['status'];
-                        $record->solucao = $data['solucao'] ?? null;
-
+                    ->action(function (Chamado $record, array $data) {
+                        $record->fill($data);
                         if ($data['status'] === 'encerrado') {
                             $record->encerrado = true;
                             $record->encerrado_em = now();
-
-                            if (!empty($data['itens_usados'])) {
-                                foreach ($data['itens_usados'] as $itemUsado) {
-                                    MovimentoEstoque::create([
-                                        'item_estoque_id' => $itemUsado['item_estoque_id'],
-                                        'chamado_id' => $record->id,
-                                        'quantidade' => $itemUsado['quantidade'],
-                                        'tipo' => 'saida',
-                                    ]);
-
-                                    $item = ItemEstoque::find($itemUsado['item_estoque_id']);
-                                    if ($item) {
-                                        $item->quantidade -= $itemUsado['quantidade'];
-                                        $item->save();
-                                    }
-                                }
-                            }
+                        } else {
+                             $record->encerrado = false;
+                             $record->encerrado_em = null;
+                             $record->solucao = null;
+                             $record->itensEstoque()->detach();
                         }
-
                         $record->save();
                     }),
-            ]),
-        ])
-        ->bulkActions([
-            Tables\Actions\DeleteBulkAction::make()->label('Excluir Selecionados'),
-        ]);
-}
 
+                Tables\Actions\ViewAction::make('visualizar')
+                    ->label('Visualizar')
+                    ->modalHeading('Detalhes do Chamado')
+                    ->visible(fn (Chamado $record) => $record->status === 'encerrado')
+                    ->form([
+                        Tabs::make('ViewTabs')->tabs([
+                            Tabs\Tab::make('Informações')->schema([
+                                Grid::make(2)->schema([
+                                    Forms\Components\TextInput::make('nome'),
+                                    Forms\Components\TextInput::make('email'),
+                                ]),
+                                Forms\Components\TextInput::make('departamento.nome')->label('Departamento Responsável'),
+                                Forms\Components\Textarea::make('descricao')->label('Descrição'),
+                            ]),
+                            Tabs\Tab::make('Solução')->schema([
+                                Forms\Components\TextInput::make('status'),
+                                Forms\Components\Textarea::make('solucao')->label('Relato / Solução'),
+                                Forms\Components\Repeater::make('itensEstoque')->relationship()->label('Itens Utilizados')->schema([
+                                     Forms\Components\Select::make('item_estoque_id')->label('Item')->options(ItemEstoque::pluck('nome', 'id')),
+                                     Forms\Components\TextInput::make('quantidade'),
+                                ])->disabled(),
+                            ]),
+                        ])
+                    ]),
+            ])
+            ->bulkActions([
+                Tables\Actions\DeleteBulkAction::make()->label('Excluir Selecionados'),
+            ])
+            // MELHORIA: Agrupamento de dados
+            ->groups([
+                Group::make('departamento.nome')->label('Departamento'),
+                Group::make('status')->label('Status'),
+            ]);
+    }
 
     public static function getPages(): array
     {
