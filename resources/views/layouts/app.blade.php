@@ -38,11 +38,19 @@
       <div class="flex-1 p-4 pr-0">
         <aside class="flex h-full w-full flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-admin-card">
           <nav class="flex-1 space-y-2 p-4">
-            <a href="#" class="group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-admin-accent-600 font-semibold transition-colors dark:text-admin-accent-300">
-              <span class="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-admin-accent-500 dark:bg-admin-accent-400"></span>
-              <ion-icon name="grid" class="text-xl transition-transform group-hover:scale-110"></ion-icon>
-              <span>Dashboard</span>
-            </a>
+            <a href="{{ route('dashboard') }}" 
+   class="group relative flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors 
+          {{ request()->routeIs('dashboard') 
+             ? 'text-admin-accent-600 font-semibold dark:text-admin-accent-300' 
+             : 'text-gray-600 hover:bg-slate-100 hover:text-gray-900 dark:text-admin-text-secondary dark:hover:bg-gray-700 dark:hover:text-admin-text-primary' }}">
+    
+    @if(request()->routeIs('dashboard'))
+        <span class="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-admin-accent-500 dark:bg-admin-accent-400"></span>
+    @endif
+    
+    <ion-icon name="grid" class="text-xl transition-transform group-hover:scale-110"></ion-icon>
+    <span>Dashboard</span>
+</a>
             <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-600 hover:bg-slate-100 hover:text-gray-900 transition-colors dark:text-admin-text-secondary dark:hover:bg-gray-700 dark:hover:text-admin-text-primary">
               <ion-icon name="chatbox-ellipses-outline" class="text-xl transition-transform group-hover:scale-110"></ion-icon>
               <span>Chamados</span>
@@ -57,11 +65,16 @@
             </a>
           </nav>
           <div class="border-t p-4 border-gray-200 dark:border-admin-border">
-            <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-600 hover:bg-red-50 hover:text-red-700 transition-colors dark:text-admin-text-secondary dark:hover:bg-red-500/10 dark:hover:text-red-400">
-              <ion-icon name="log-out-outline" class="text-xl transition-transform group-hover:scale-110"></ion-icon>
-              <span>Sair</span>
-            </a>
-          </div>
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <a href="{{ route('logout') }}"
+           onclick="event.preventDefault(); this.closest('form').submit();"
+           class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-600 hover:bg-red-50 hover:text-red-700 transition-colors dark:text-admin-text-secondary dark:hover:bg-red-500/10 dark:hover:text-red-400">
+            <ion-icon name="log-out-outline" class="text-xl transition-transform group-hover:scale-110"></ion-icon>
+            <span>Sair</span>
+        </a>
+    </form>
+</div>
         </aside>
       </div>
     </div>
@@ -103,16 +116,42 @@
           </button>
           
           <div class="relative">
-            <button id="user-menu-button" type="button" class="flex rounded-full focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-admin-accent-600">
-              <img class="h-10 w-10 rounded-full object-cover ring-2 ring-admin-accent-100/50" src="https://placehold.co/100x100/cce8d9/004D29?text=JS" alt="Avatar do utilizador" />
-            </button>
-            <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-admin-card dark:ring-admin-border z-50" role="menu">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 dark:text-admin-text-secondary dark:hover:bg-gray-700" role="menuitem">O meu Perfil</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 dark:text-admin-text-secondary dark:hover:bg-gray-700" role="menuitem">Configurações</a>
-              <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10" role="menuitem">Sair</a>
-            </div>
-          </div>
+    <button id="user-menu-button" type="button" class="flex rounded-full focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-admin-accent-600">
+        <img class="h-10 w-10 rounded-full object-cover ring-2 ring-admin-accent-100/50" 
+             src="https://placehold.co/100x100/cce8d9/004D29?text={{ Str::upper(substr(Auth::user()->name, 0, 2)) }}" 
+             alt="{{ Auth::user()->name }}" />
+    </button>
+    
+    <div id="user-menu" class="hidden absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-admin-card dark:ring-admin-border z-50" role="menu">
+        <div class="border-b border-gray-200 dark:border-admin-border px-4 py-3">
+            <p class="text-sm font-semibold text-gray-900 dark:text-admin-text-primary">
+                {{ Auth::user()->name }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-admin-text-secondary truncate">
+                {{ Auth::user()->email }}
+            </p>
         </div>
+        
+        <div class="py-1">
+            <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 dark:text-admin-text-secondary dark:hover:bg-gray-700" role="menuitem">
+                O meu Perfil
+            </a>
+            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-slate-100 dark:text-admin-text-secondary dark:hover:bg-gray-700" role="menuitem">
+                Configurações
+            </a>
+
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <a href="{{ route('logout') }}"
+                   onclick="event.preventDefault(); this.closest('form').submit();"
+                   class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10" 
+                   role="menuitem">
+                    Sair
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
       </header>
 
       <main class="flex-1 overflow-y-auto p-8 pt-6">
