@@ -1,17 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-white">
-                Detalhes do Chamado #{{ $chamado->id }}
-            </h1>
-            <a href="{{ route('chamados.edit', $chamado) }}" 
-               class="rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-white">
-                Atender Chamado
-            </a>
-        </div>
+        <h1 class="text-2xl font-bold text-white">
+            Detalhes do Chamado #{{ $chamado->id }}
+        </h1>
     </x-slot>
 
     <div class="space-y-6">
+        
         <div class="rounded-lg bg-white dark:bg-admin-card shadow-lg">
             <div class="p-6 sm:p-8">
                 <div class="flex justify-between items-start">
@@ -57,9 +52,21 @@
 
         <div class="rounded-lg bg-white dark:bg-admin-card shadow-lg">
              <div class="p-6 sm:p-8">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-admin-text-primary">Andamento do Atendimento</h3>
+                
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-admin-text-primary">
+                        Andamento do Atendimento
+                    </h3>
 
-                <div class="mt-4 space-y-4">
+                    @if($chamado->status == 'aberto' || $chamado->status == 'em_andamento')
+                        <a href="{{ route('chamados.edit', $chamado) }}" 
+                           class="rounded-md bg-yellow-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                            Atender Chamado
+                        </a>
+                    @endif
+                </div>
+
+                <div class="mt-6 space-y-4 border-t border-gray-200 dark:border-admin-border pt-6">
                     <div>
                         <dt class="text-sm font-medium text-gray-500 dark:text-admin-text-secondary">Atendente</dt>
                         <dd class="mt-1 text-sm text-gray-900 dark:text-admin-text-primary">
@@ -100,4 +107,5 @@
             </div>
         </div>
     </div>
+
 </x-app-layout>

@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Chamado;
+use App\Models\Material;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Exception;
+use Illuminate\Routing\Controller;
 
 class ChamadoController extends Controller
 {
@@ -62,43 +66,100 @@ class ChamadoController extends Controller
      * Mostra o formulário para editar um chamado (atendimento).
      */
     public function edit(Chamado $chamado)
-    {
-        // return view('chamados.edit', compact('chamado'));
-        return "Formulário de edição/atendimento do Chamado ID: " . $chamado->id;
-    }
+{
+    // Pega todos os materiais que tenham estoque
+    $materiais = Material::where('quantidade_em_estoque', '>', 0)
+                        ->orderBy('nome')
+                        ->get();
+
+    // Retorna a view de edição, passando o chamado e a lista de materiais
+    return view('chamados.edit', compact('chamado', 'materiais'));
+}
 
     /**
      * Atualiza um chamado específico no banco de dados.
      * (É aqui que o atendente muda status, adiciona solução E baixa materiais)
      */
     public function update(Request $request, Chamado $chamado)
-    {
-        // Lógica de validação...
-        
-        // Ex: Mudar status
-        $chamado->status = $request->input('status', $chamado->status);
-        
-        // Ex: Atribuir a si mesmo
-        if ($request->has('atribuir_a_mim')) {
-            $chamado->atendente_id = Auth::id();
-        }
+{
+    // Validação básica (pode ser mais complexa)
+    $dadosValidados = $request->validate([
+        'status' => 'required|in:aberto,em_andamento,concluido,cancelado',
+        'solucao_aplicada' => 'nullable|string',
+        'atribuir_a_mim' => 'nullable|boolean',
+        'materiais_utilizados' => 'nullable|array',
+        'materiais_utilizados.*' => 'nullable|integer|min:0', // Valida cada item do array
+    ]);
 
-        // --- LÓGICA PRINCIPAL DO PROJETO ---
-        // Aqui virá a lógica para dar baixa no estoque
-        if ($request->has('materiais_utilizados')) {
-            // Ex: $request->input('materiais_utilizados') = [ ['id' => 1, 'qtd' => 2], ['id' => 5, 'qtd' => 1] ]
-            
-            // 1. Loop nos materiais
-            // 2. Anexa na tabela pivot (chamado_material) com a quantidade
-            // 3. Subtrai a quantidade do Model 'Material' (controle de estoque)
-            // Esta lógica precisa ser transacional (DB::transaction)
-        }
-        
-        $chamado->save();
-
-        // return redirect()->route('chamados.show', $chamado)->with('sucesso', 'Chamado atualizado!');
-        return "Chamado ID: " . $chamado->id . " atualizado.";
+    // Validação condicional: Solução é obrigatória se estiver concluindo
+    if ($dadosValidados['status'] == 'concluido' && empty($dadosValidados['solucao_aplicada'])) {
+        return back()->withErrors(['solucao_aplicada' => 'A solução é obrigatória para concluir o chamado.'])->withInput();
     }
+
+    try {
+        // Usa uma transação para garantir a integridade dos dados
+        // Se algo falhar (ex: falta de estoque), tudo é revertido.
+        DB::transaction(function () use ($request, $chamado, $dadosValidados) {
+
+            // 1. Atualiza os campos simples do chamado
+            $chamado->status = $dadosValidados['status'];
+            $chamado->solucao_aplicada = $dadosValidados['solucao_aplicada'];
+
+            // 2. Atribui o chamado ao atendente logado
+            if ($request->has('atribuir_a_mim') && !$chamado->atendente_id) {
+                $chamado->atendente_id = Auth::id();
+            }
+
+            // 3. Define a data de conclusão
+            if ($chamado->status == 'concluido' && !$chamado->concluido_em) {
+                $chamado->concluido_em = now();
+            }
+
+            // 4. LÓGICA DE BAIXA DE ESTOQUE
+            if ($request->has('materiais_utilizados')) {
+                $materiaisParaSincronizar = [];
+
+                foreach ($request->input('materiais_utilizados') as $material_id => $quantidade) {
+                    // Só processa se a quantidade for maior que zero
+                    if (empty($quantidade) || $quantidade <= 0) {
+                        continue;
+                    }
+
+                    $material = Material::findOrFail($material_id); // Pega o item do estoque
+
+                    // Verifica se há estoque suficiente
+                    if ($material->quantidade_em_estoque < $quantidade) {
+                        // Se não tiver, falha a transação
+                        throw new Exception("Estoque insuficiente para o item: {$material->nome}. Disponível: {$material->quantidade_em_estoque}, Solicitado: {$quantidade}");
+                    }
+
+                    // 1. Subtrai do estoque
+                    // Usar decrement é mais seguro contra "race conditions"
+                    $material->decrement('quantidade_em_estoque', $quantidade);
+
+                    // 2. Adiciona ao array para salvar na tabela pivot
+                    // (Isso registra o histórico de uso)
+                    $materiaisParaSincronizar[$material_id] = ['quantidade_utilizada' => $quantidade];
+                }
+
+                // Sincroniza a tabela pivot (chamado_material)
+                // 'syncWithoutDetaching' adiciona os novos itens sem remover os antigos
+                $chamado->materiais()->syncWithoutDetaching($materiaisParaSincronizar);
+            }
+
+            // Salva o chamado (com status, atendente, solução, etc.)
+            $chamado->save();
+        });
+
+    } catch (Exception $e) {
+        // Se a transação falhar (ex: falta de estoque), volta com o erro
+        return back()->withErrors(['estoque' => $e->getMessage()])->withInput();
+    }
+
+    // Se tudo deu certo, redireciona para a página de detalhes
+    return redirect()->route('chamados.show', $chamado)
+                     ->with('sucesso', 'Atendimento salvo e estoque atualizado!');
+}
 
     /**
      * Remove (ou cancela) um chamado.

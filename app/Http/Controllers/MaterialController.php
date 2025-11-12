@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Material;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 
 class MaterialController extends Controller
 {
@@ -13,8 +14,8 @@ class MaterialController extends Controller
     public function index()
     {
         $materiais = Material::latest()->paginate(10);
-        // return view('materiais.index', compact('materiais'));
-        return "Lista de todos os materiais (estoque)";
+        // Ajustado para retornar a view
+        return view('materiais.index', compact('materiais'));
     }
 
     /**
@@ -22,8 +23,8 @@ class MaterialController extends Controller
      */
     public function create()
     {
-        // return view('materiais.create');
-        return "Formulário para novo item de estoque";
+        // Ajustado para retornar a view
+        return view('materiais.create');
     }
 
     /**
@@ -43,17 +44,19 @@ class MaterialController extends Controller
 
         $material = Material::create($dadosValidados);
 
-        // return redirect()->route('materiais.index')->with('sucesso', 'Material cadastrado!');
-        return "Material salvo com ID: " . $material->id;
+        // Ajustado para redirecionar com mensagem
+        return redirect()->route('materiais.index')
+                         ->with('sucesso', 'Material cadastrado com sucesso!');
     }
 
     /**
      * Exibe os detalhes de um material.
+     * (Opcional, mas bom ter)
      */
     public function show(Material $material)
     {
-        // return view('materiais.show', compact('material'));
-        return "Detalhes do Material ID: " . $material->id;
+        // Ajustado para retornar a view
+        return view('materiais.show', compact('material'));
     }
 
     /**
@@ -61,8 +64,8 @@ class MaterialController extends Controller
      */
     public function edit(Material $material)
     {
-        // return view('materiais.edit', compact('material'));
-        return "Formulário de edição do Material ID: " . $material->id;
+        // Ajustado para retornar a view
+        return view('materiais.edit', compact('material'));
     }
 
     /**
@@ -82,8 +85,9 @@ class MaterialController extends Controller
 
         $material->update($dadosValidados);
 
-        // return redirect()->route('materiais.index')->with('sucesso', 'Material atualizado!');
-        return "Material ID: " . $material->id . " atualizado.";
+        // Ajustado para redirecionar com mensagem
+        return redirect()->route('materiais.index')
+                         ->with('sucesso', 'Material atualizado com sucesso!');
     }
 
     /**
@@ -91,12 +95,10 @@ class MaterialController extends Controller
      */
     public function destroy(Material $material)
     {
-        // Estamos usando SoftDeletes, então o registro não será apagado
-        // permanentemente, apenas marcado como "deleted_at".
-        // Isso preserva o histórico.
-        $material->delete();
+        $material->delete(); // SoftDeletes
 
-        // return redirect()->route('materiais.index')->with('sucesso', 'Material desativado.');
-        return "Material ID: " . $material->id . " desativado (Soft Delete).";
+        // Ajustado para redirecionar com mensagem
+        return redirect()->route('materiais.index')
+                         ->with('sucesso', 'Material desativado com sucesso.');
     }
 }

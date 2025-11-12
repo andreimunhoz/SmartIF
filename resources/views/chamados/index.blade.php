@@ -1,15 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-white">
-                Meus Chamados
-            </h1>
-            <a href="{{ route('chamados.create') }}" 
-               class="group flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-admin-accent-700 shadow-sm hover:bg-admin-accent-50 transition-colors focus:outline-none focus:ring-2 focus:ring-white">
-                <ion-icon name="add-circle-outline" class="text-lg"></ion-icon>
-                <span>Novo Chamado</span>
-            </a>
-        </div>
+        <h1 class="text-2xl font-bold text-white">
+            Meus Chamados
+        </h1>
     </x-slot>
 
     <div class="rounded-lg bg-white dark:bg-admin-card shadow-lg transition-shadow hover:shadow-xl">
@@ -19,7 +12,13 @@
                 <h2 class="text-xl font-bold text-gray-900 dark:text-admin-text-primary">Listagem de Chamados</h2>
                 <p class="mt-1 text-sm text-gray-500 dark:text-admin-text-secondary">Todos os chamados abertos e em andamento.</p>
             </div>
-            </div>
+
+            <a href="{{ route('chamados.create') }}" 
+               class="group flex items-center gap-2 rounded-full bg-admin-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-admin-accent-700 focus:outline-none focus:ring-2 focus:ring-admin-accent-500">
+                <ion-icon name="add-circle-outline" class="text-lg"></ion-icon>
+                <span>Novo Chamado</span>
+            </a>
+        </div>
 
         <div class="flow-root">
             <div class="overflow-x-auto">
@@ -74,7 +73,7 @@
                             @empty
                                 <tr>
                                     <td colspan="6" class="whitespace-nowrap py-6 pl-6 pr-3 text-sm font-medium text-gray-500 dark:text-admin-text-secondary text-center">
-                                        Nenhum chamado encontrado.
+                                        Nenhum chamado encontrado. <a href="{{ route('chamados.create') }}" class="text-admin-accent-600 hover:underline">Abra o primeiro!</a>
                                     </td>
                                 </tr>
                             @endforelse
