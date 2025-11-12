@@ -51,10 +51,19 @@
     <ion-icon name="grid" class="text-xl transition-transform group-hover:scale-110"></ion-icon>
     <span>Dashboard</span>
 </a>
-            <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-600 hover:bg-slate-100 hover:text-gray-900 transition-colors dark:text-admin-text-secondary dark:hover:bg-gray-700 dark:hover:text-admin-text-primary">
-              <ion-icon name="chatbox-ellipses-outline" class="text-xl transition-transform group-hover:scale-110"></ion-icon>
-              <span>Chamados</span>
-            </a>
+            <a href="{{ route('chamados.index') }}" 
+   class="group relative flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors 
+          {{ request()->routeIs('chamados.*') 
+             ? 'text-admin-accent-600 font-semibold dark:text-admin-accent-300' 
+             : 'text-gray-600 hover:bg-slate-100 hover:text-gray-900 dark:text-admin-text-secondary dark:hover:bg-gray-700 dark:hover:text-admin-text-primary' }}">
+
+    @if(request()->routeIs('chamados.*'))
+        <span class="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-admin-accent-500 dark:bg-admin-accent-400"></span>
+    @endif
+
+    <ion-icon name="chatbox-ellipses-outline" class="text-xl transition-transform group-hover:scale-110"></ion-icon>
+    <span>Chamados</span>
+</a>
             <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-600 hover:bg-slate-100 hover:text-gray-900 transition-colors dark:text-admin-text-secondary dark:hover:bg-gray-700 dark:hover:text-admin-text-primary">
               <ion-icon name="cube-outline" class="text-xl transition-transform group-hover:scale-110"></ion-icon>
               <span>Estoque</span>

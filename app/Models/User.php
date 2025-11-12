@@ -4,13 +4,13 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -46,8 +46,23 @@ class User extends Authenticatable
         ];
     }
 
-    public function isAdm(): bool
+    // --- ADICIONE ESTES MÉTODOS ---
+
+    /**
+     * Define o relacionamento 1:N (Um-para-Muitos) com Chamado.
+     * Um usuário pode ter vários chamados (requisitados).
+     */
+    public function chamadosRequisitados(): HasMany
     {
-        return in_array($this->email, config('custom.admins'));
+        return $this->hasMany(Chamado::class, 'requisitante_id');
+    }
+
+    /**
+     * Define o relacionamento 1:N (Um-para-Muitos) com Chamado.
+     * Um usuário pode ter vários chamados (atendidos).
+     */
+    public function chamadosAtendidos(): HasMany
+    {
+        return $this->hasMany(Chamado::class, 'atendente_id');
     }
 }
