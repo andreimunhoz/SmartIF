@@ -22,8 +22,7 @@ class ChamadoController extends Controller
      */
     public function create()
     {
-        // return view('chamados.create');
-        return "Formulário para criar novo chamado";
+        return view('chamados.create');
     }
 
     /**
@@ -41,9 +40,11 @@ class ChamadoController extends Controller
         // Cria o chamado associado ao usuário logado
         $chamado = Auth::user()->chamadosRequisitados()->create($dadosValidados);
 
-        // return redirect()->route('chamados.show', $chamado)->with('sucesso', 'Chamado aberto!');
-        return "Chamado salvo com ID: " . $chamado->id;
-    }
+        // Redireciona para a rota 'chamados.show' (página de detalhes)
+        // e envia uma mensagem de sucesso para a sessão.
+        return redirect()->route('chamados.show', $chamado)
+                        ->with('sucesso', 'Chamado aberto com sucesso!');
+}
 
     /**
      * Exibe um chamado específico.
@@ -53,8 +54,8 @@ class ChamadoController extends Controller
         // Carrega os relacionamentos para evitar N+1 queries
         $chamado->load('requisitante', 'atendente', 'materiais');
         
-        // return view('chamados.show', compact('chamado'));
-        return "Exibindo detalhes do Chamado ID: " . $chamado->id;
+        return view('chamados.show', compact('chamado'));
+        
     }
 
     /**

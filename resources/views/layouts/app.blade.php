@@ -119,10 +119,11 @@
             </div>
           </div>
 
-          <button class="group flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-admin-accent-700 shadow-sm hover:bg-admin-accent-50 transition-colors focus:outline-none focus:ring-2 focus:ring-white">
-            <ion-icon name="add-circle-outline" class="text-lg"></ion-icon>
-            <span>Novo Chamado</span>
-          </button>
+          <a href="{{ route('chamados.create') }}" 
+   class="group flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-admin-accent-700 shadow-sm hover:bg-admin-accent-50 transition-colors focus:outline-none focus:ring-2 focus:ring-white">
+    <ion-icon name="add-circle-outline" class="text-lg"></ion-icon>
+    <span>Novo Chamado</span>
+</a>
           
           <div class="relative">
     <button id="user-menu-button" type="button" class="flex rounded-full focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-admin-accent-600">
@@ -164,10 +165,24 @@
       </header>
 
       <main class="flex-1 overflow-y-auto p-8 pt-6">
-        
-        {{ $slot }}
 
-      </main>
+    @if (session('sucesso'))
+        <div class="mb-6 rounded-md bg-green-100 dark:bg-green-500/10 p-4 border border-green-200 dark:border-green-500/20">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <ion-icon name="checkmark-circle" class="h-5 w-5 text-green-600 dark:text-green-400"></ion-icon>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-semibold text-green-800 dark:text-green-300">
+                        {{ session('sucesso') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+    {{ $slot }}
+
+</main>
     </div>
   </div>
 
